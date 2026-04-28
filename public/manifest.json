@@ -1,0 +1,24 @@
+{
+  "name": "Bastet's Box",
+  "short_name": "バステトの箱",
+  "description": "バステト神が今日の課題を授けてくれるアプリ",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0F2040",
+  "theme_color": "#C9A84C",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

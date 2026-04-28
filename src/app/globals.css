@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+@theme {
+  --color-lapis: #1B3A6B;
+  --color-lapis-light: #2E5BA8;
+  --color-lapis-dark: #0F2040;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E4C46A;
+  --color-gold-dark: #8B6914;
+  --color-sand: #F5E6C8;
+  --color-papyrus: #EDD9A3;
+
+  --font-serif: 'Noto Serif JP', serif;
+  --font-display: 'Cinzel', serif;
+}
+
+body {
+  background-color: #0F2040;
+  color: #F5E6C8;
+  font-family: var(--font-serif);
+  min-height: 100dvh;
+}
+
+/* ガチャカードのキラキラエフェクト */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #C9A84C 0%,
+    #E4C46A 30%,
+    #fff8e7 50%,
+    #E4C46A 70%,
+    #C9A84C 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* エジプト風スクロールバー */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0F2040; }
+::-webkit-scrollbar-thumb { background: #C9A84C; border-radius: 3px; }
