@@ -23,6 +23,11 @@ export const BASTET_DRAW_VOICES = [
   'バステトの力をもって今日の課題を授ける……',
 ];
 
+export const BASTET_ALL_DRAWN = [
+  'すべての課題を引き尽くしたか……。今月の試練はすべて与えた。リセットして新たなる周を始めよ。',
+  '見事じゃ、我が子よ。箱の中はもう空じゃ。新しき月に向けて、リセットするがよい。',
+];
+
 export function randomLine(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)];
 }

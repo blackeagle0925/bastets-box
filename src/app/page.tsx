@@ -14,6 +14,7 @@ import {
   BASTET_BLESSINGS,
   BASTET_EMPTY,
   BASTET_DRAW_VOICES,
+  BASTET_ALL_DRAWN,
   randomLine,
 } from '@/lib/bastetLines';
 
@@ -22,15 +23,23 @@ export default function HomePage() {
   const [speech, setSpeech] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { tasks, todayTask, drawTask, completeTask, resetTodayTask } = useTaskStore();
-  const activeCount = tasks.filter((t) => t.status === 'active').length;
+  const { tasks, todayTask, drawnIds, drawTask, completeTask, resetTodayTask, checkMonthlyReset } =
+    useTaskStore();
+
+  const activeTasks = tasks.filter((t) => t.status === 'active');
+  const activeCount = activeTasks.length;
+  const availableCount = activeTasks.filter((t) => !drawnIds.includes(t.id)).length;
+  const allDrawn = activeCount > 0 && availableCount === 0;
 
   useEffect(() => {
+    checkMonthlyReset();
     if (todayTask) {
       setPhase('revealed');
       setSpeech('今日の課題が待っておるぞ、我が子よ。');
     } else if (activeCount === 0) {
       setSpeech(randomLine(BASTET_EMPTY));
+    } else if (allDrawn) {
+      setSpeech(randomLine(BASTET_ALL_DRAWN));
     } else {
       setSpeech(randomLine(BASTET_GREETINGS));
     }
@@ -40,6 +49,10 @@ export default function HomePage() {
   const handleDraw = () => {
     if (activeCount === 0) {
       setSpeech(randomLine(BASTET_EMPTY));
+      return;
+    }
+    if (allDrawn) {
+      setSpeech(randomLine(BASTET_ALL_DRAWN));
       return;
     }
     setPhase('drawing');
@@ -52,7 +65,7 @@ export default function HomePage() {
         setSpeech('これが今日そなたに与えられた試練じゃ。');
       } else {
         setPhase('idle');
-        setSpeech(randomLine(BASTET_EMPTY));
+        setSpeech(randomLine(BASTET_ALL_DRAWN));
       }
     }, 2000);
   };
@@ -77,6 +90,14 @@ export default function HomePage() {
 
   const idolPhase =
     phase === 'blessing' ? 'blessing' : phase === 'drawing' ? 'drawing' : 'idle';
+
+  const drawDisabled = activeCount === 0 || allDrawn;
+  const drawLabel =
+    activeCount === 0
+      ? '課題を登録してください'
+      : allDrawn
+        ? 'すべての課題を引き尽くした'
+        : `${availableCount}件の課題が待っている`;
 
   return (
     <main className="min-h-dvh flex flex-col items-center px-4 pt-10 pb-8 relative overflow-hidden">
@@ -125,12 +146,16 @@ export default function HomePage() {
               exit={{ opacity: 0, scale: 0.9 }}
               className="flex flex-col items-center gap-3"
             >
-              <GachaButton onClick={handleDraw} disabled={activeCount === 0} />
-              <p className="text-sand/40 text-xs tracking-wider">
-                {activeCount > 0
-                  ? `${activeCount}件の課題が待っている`
-                  : '課題を登録してください'}
-              </p>
+              <GachaButton onClick={handleDraw} disabled={drawDisabled} />
+              <p className="text-sand/40 text-xs tracking-wider">{drawLabel}</p>
+              {allDrawn && (
+                <Link
+                  href="/tasks"
+                  className="text-gold/60 hover:text-gold text-xs border border-gold/20 hover:border-gold/40 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  リセットする →
+                </Link>
+              )}
             </motion.div>
           )}
 

@@ -9,4 +9,10 @@ export interface Task {
   status: TaskStatus;
 }
 
+export interface CompletionRecord {
+  taskId: string;
+  taskTitle: string;
+  completedAt: string;
+}
+
 export type GachaPhase = 'idle' | 'drawing' | 'revealed' | 'blessing';
