@@ -13,7 +13,7 @@ interface TaskCardProps {
 export default function TaskCard({ task }: TaskCardProps) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { deleteTask } = useTaskStore();
+  const { deleteTask, resetTask } = useTaskStore();
 
   const isCompleted = task.status === 'completed';
 
@@ -51,7 +51,15 @@ export default function TaskCard({ task }: TaskCardProps) {
                 )}
               </div>
 
-              {!isCompleted && (
+              {isCompleted ? (
+                <button
+                  onClick={() => resetTask(task.id)}
+                  className="text-gold/50 hover:text-gold text-xs border border-gold/30 hover:border-gold/60 rounded-lg px-2 py-1 transition-colors shrink-0"
+                  aria-label="ガチャに戻す"
+                >
+                  ↺ 戻す
+                </button>
+              ) : (
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => setEditing(true)}

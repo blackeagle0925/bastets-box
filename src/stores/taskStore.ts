@@ -21,6 +21,7 @@ interface TaskStore {
   deleteTask: (id: string) => void;
   drawTask: () => Task | null;
   completeTask: (id: string) => void;
+  resetTask: (id: string) => void;
   resetTodayTask: () => void;
   monthlyReset: () => void;
   checkMonthlyReset: () => void;
@@ -83,6 +84,15 @@ export const useTaskStore = create<TaskStore>()(
           completionHistory: task
             ? [...s.completionHistory, { taskId: id, taskTitle: task.title, completedAt: now }]
             : s.completionHistory,
+        }));
+      },
+
+      resetTask: (id) => {
+        set((s) => ({
+          tasks: s.tasks.map((t) =>
+            t.id === id ? { ...t, status: 'active', completedAt: undefined } : t
+          ),
+          drawnIds: s.drawnIds.filter((did) => did !== id),
         }));
       },
 
