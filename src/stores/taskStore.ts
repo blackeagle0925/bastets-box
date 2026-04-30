@@ -22,6 +22,7 @@ interface TaskStore {
   drawTask: () => Task | null;
   completeTask: (id: string) => void;
   resetTask: (id: string) => void;
+  resetAllCompleted: () => void;
   resetTodayTask: () => void;
   monthlyReset: () => void;
   checkMonthlyReset: () => void;
@@ -94,6 +95,20 @@ export const useTaskStore = create<TaskStore>()(
           ),
           drawnIds: s.drawnIds.filter((did) => did !== id),
         }));
+      },
+
+      resetAllCompleted: () => {
+        set((s) => {
+          const completedIds = new Set(
+            s.tasks.filter((t) => t.status === 'completed').map((t) => t.id)
+          );
+          return {
+            tasks: s.tasks.map((t) =>
+              t.status === 'completed' ? { ...t, status: 'active', completedAt: undefined } : t
+            ),
+            drawnIds: s.drawnIds.filter((id) => !completedIds.has(id)),
+          };
+        });
       },
 
       resetTodayTask: () => set({ todayTask: null }),

@@ -7,12 +7,13 @@ import TaskList from '@/components/task/TaskList';
 import GoldButton from '@/components/ui/GoldButton';
 
 export default function TasksPage() {
-  const { tasks, completionHistory, monthlyReset } = useTaskStore();
+  const { tasks, completionHistory, resetAllCompleted } = useTaskStore();
   const activeCount = tasks.filter((t) => t.status === 'active').length;
+  const completedCount = tasks.filter((t) => t.status === 'completed').length;
   const [confirming, setConfirming] = useState(false);
 
   const handleReset = () => {
-    monthlyReset();
+    resetAllCompleted();
     setConfirming(false);
   };
 
@@ -65,10 +66,11 @@ export default function TasksPage() {
           <GoldButton
             variant="ghost"
             size="sm"
-            className="w-full text-sand/40 border-sand/20 hover:border-sand/40 hover:text-sand/70"
+            className="w-full text-sand/40 border-sand/20 hover:border-sand/40 hover:text-sand/70 disabled:opacity-30 disabled:cursor-not-allowed"
             onClick={() => setConfirming(true)}
+            disabled={completedCount === 0}
           >
-            ↺ リセット（完了済みを戻す）
+            ↺ 使用済みを一斉リセット（{completedCount}件）
           </GoldButton>
         ) : (
           <div className="flex flex-col gap-2 border border-gold/30 rounded-xl p-4 bg-lapis/30">
