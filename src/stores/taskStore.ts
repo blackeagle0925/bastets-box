@@ -2,19 +2,34 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Task, CompletionRecord } from '@/types';
+import { Task, Playlist } from '@/types';
 import { drawRandom } from '@/lib/gacha';
 
 function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7); // "2026-04"
+  return new Date().toISOString().slice(0, 7);
+}
+
+function newPlaylist(title: string): Playlist {
+  return {
+    id: crypto.randomUUID(),
+    title,
+    tasks: [],
+    todayTask: null,
+    drawnIds: [],
+    completionHistory: [],
+    lastResetMonth: '',
+    createdAt: new Date().toISOString(),
+  };
 }
 
 interface TaskStore {
-  tasks: Task[];
-  todayTask: Task | null;
-  drawnIds: string[];
-  completionHistory: CompletionRecord[];
-  lastResetMonth: string;
+  playlists: Playlist[];
+  activePlaylistId: string | null;
+
+  createPlaylist: (title: string) => void;
+  renamePlaylist: (id: string, title: string) => void;
+  deletePlaylist: (id: string) => void;
+  setActivePlaylist: (id: string) => void;
 
   addTask: (title: string, description?: string) => void;
   updateTask: (id: string, updates: Partial<Pick<Task, 'title' | 'description'>>) => void;
@@ -30,106 +45,157 @@ interface TaskStore {
 
 export const useTaskStore = create<TaskStore>()(
   persist(
-    (set, get) => ({
-      tasks: [],
-      todayTask: null,
-      drawnIds: [],
-      completionHistory: [],
-      lastResetMonth: '',
-
-      addTask: (title, description) => {
-        const task: Task = {
-          id: crypto.randomUUID(),
-          title,
-          description,
-          createdAt: new Date().toISOString(),
-          status: 'active',
-        };
-        set((s) => ({ tasks: [...s.tasks, task] }));
-      },
-
-      updateTask: (id, updates) => {
+    (set, get) => {
+      const updateActive = (updater: (p: Playlist) => Partial<Playlist>) =>
         set((s) => ({
-          tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+          playlists: s.playlists.map((p) =>
+            p.id === s.activePlaylistId ? { ...p, ...updater(p) } : p
+          ),
         }));
-      },
 
-      deleteTask: (id) => {
-        set((s) => ({
-          tasks: s.tasks.filter((t) => t.id !== id),
-          drawnIds: s.drawnIds.filter((did) => did !== id),
-          todayTask: s.todayTask?.id === id ? null : s.todayTask,
-        }));
-      },
+      return {
+        playlists: [],
+        activePlaylistId: null,
 
-      drawTask: () => {
-        const { tasks, drawnIds } = get();
-        const drawn = drawRandom(tasks, drawnIds);
-        if (drawn) {
+        createPlaylist: (title) => {
+          const pl = newPlaylist(title);
           set((s) => ({
-            todayTask: drawn,
-            drawnIds: [...s.drawnIds, drawn.id],
+            playlists: [...s.playlists, pl],
+            activePlaylistId: s.activePlaylistId ?? pl.id,
           }));
-        }
-        return drawn;
-      },
+        },
 
-      completeTask: (id) => {
-        const task = get().tasks.find((t) => t.id === id);
-        const now = new Date().toISOString();
-        set((s) => ({
-          tasks: s.tasks.map((t) =>
-            t.id === id ? { ...t, status: 'completed', completedAt: now } : t
-          ),
-          todayTask: null,
-          completionHistory: task
-            ? [...s.completionHistory, { taskId: id, taskTitle: task.title, completedAt: now }]
-            : s.completionHistory,
-        }));
-      },
+        renamePlaylist: (id, title) =>
+          set((s) => ({
+            playlists: s.playlists.map((p) => (p.id === id ? { ...p, title } : p)),
+          })),
 
-      resetTask: (id) => {
-        set((s) => ({
-          tasks: s.tasks.map((t) =>
-            t.id === id ? { ...t, status: 'active', completedAt: undefined } : t
-          ),
-          drawnIds: s.drawnIds.filter((did) => did !== id),
-        }));
-      },
+        deletePlaylist: (id) =>
+          set((s) => {
+            const remaining = s.playlists.filter((p) => p.id !== id);
+            return {
+              playlists: remaining,
+              activePlaylistId:
+                s.activePlaylistId === id ? (remaining[0]?.id ?? null) : s.activePlaylistId,
+            };
+          }),
 
-      resetAllCompleted: () => {
-        set((s) => {
-          const completedIds = new Set(
-            s.tasks.filter((t) => t.status === 'completed').map((t) => t.id)
-          );
-          return {
-            tasks: s.tasks.map((t) =>
+        setActivePlaylist: (id) => set({ activePlaylistId: id }),
+
+        addTask: (title, description) => {
+          const task: Task = {
+            id: crypto.randomUUID(),
+            title,
+            description,
+            createdAt: new Date().toISOString(),
+            status: 'active',
+          };
+          updateActive((p) => ({ tasks: [...p.tasks, task] }));
+        },
+
+        updateTask: (id, updates) =>
+          updateActive((p) => ({
+            tasks: p.tasks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+          })),
+
+        deleteTask: (id) =>
+          updateActive((p) => ({
+            tasks: p.tasks.filter((t) => t.id !== id),
+            drawnIds: p.drawnIds.filter((did) => did !== id),
+            todayTask: p.todayTask?.id === id ? null : p.todayTask,
+          })),
+
+        drawTask: () => {
+          const { playlists, activePlaylistId } = get();
+          const pl = playlists.find((p) => p.id === activePlaylistId);
+          if (!pl) return null;
+          const drawn = drawRandom(pl.tasks, pl.drawnIds);
+          if (drawn) {
+            updateActive((p) => ({
+              todayTask: drawn,
+              drawnIds: [...p.drawnIds, drawn.id],
+            }));
+          }
+          return drawn;
+        },
+
+        completeTask: (id) => {
+          const { playlists, activePlaylistId } = get();
+          const task = playlists.find((p) => p.id === activePlaylistId)?.tasks.find((t) => t.id === id);
+          const now = new Date().toISOString();
+          updateActive((p) => ({
+            tasks: p.tasks.map((t) =>
+              t.id === id ? { ...t, status: 'completed', completedAt: now } : t
+            ),
+            todayTask: null,
+            completionHistory: task
+              ? [...p.completionHistory, { taskId: id, taskTitle: task.title, completedAt: now }]
+              : p.completionHistory,
+          }));
+        },
+
+        resetTask: (id) =>
+          updateActive((p) => ({
+            tasks: p.tasks.map((t) =>
+              t.id === id ? { ...t, status: 'active', completedAt: undefined } : t
+            ),
+            drawnIds: p.drawnIds.filter((did) => did !== id),
+          })),
+
+        resetAllCompleted: () =>
+          updateActive((p) => {
+            const completedIds = new Set(
+              p.tasks.filter((t) => t.status === 'completed').map((t) => t.id)
+            );
+            return {
+              tasks: p.tasks.map((t) =>
+                t.status === 'completed' ? { ...t, status: 'active', completedAt: undefined } : t
+              ),
+              drawnIds: p.drawnIds.filter((id) => !completedIds.has(id)),
+            };
+          }),
+
+        resetTodayTask: () => updateActive(() => ({ todayTask: null })),
+
+        monthlyReset: () =>
+          updateActive((p) => ({
+            tasks: p.tasks.map((t) =>
               t.status === 'completed' ? { ...t, status: 'active', completedAt: undefined } : t
             ),
-            drawnIds: s.drawnIds.filter((id) => !completedIds.has(id)),
+            drawnIds: [],
+            todayTask: null,
+            lastResetMonth: currentMonth(),
+          })),
+
+        checkMonthlyReset: () => {
+          const { playlists, activePlaylistId } = get();
+          const pl = playlists.find((p) => p.id === activePlaylistId);
+          if (pl && pl.lastResetMonth !== currentMonth()) {
+            get().monthlyReset();
+          }
+        },
+      };
+    },
+    {
+      name: 'bastet-box-v1',
+      version: 2,
+      migrate: (persisted: unknown, version: number) => {
+        if (version < 2) {
+          const old = persisted as Record<string, unknown>;
+          const pl: Playlist = {
+            id: crypto.randomUUID(),
+            title: 'メインリスト',
+            tasks: (old.tasks as Task[]) ?? [],
+            todayTask: (old.todayTask as Task | null) ?? null,
+            drawnIds: (old.drawnIds as string[]) ?? [],
+            completionHistory: [],
+            lastResetMonth: (old.lastResetMonth as string) ?? '',
+            createdAt: new Date().toISOString(),
           };
-        });
-      },
-
-      resetTodayTask: () => set({ todayTask: null }),
-
-      monthlyReset: () => {
-        set((s) => ({
-          tasks: s.tasks.map((t) =>
-            t.status === 'completed' ? { ...t, status: 'active', completedAt: undefined } : t
-          ),
-          drawnIds: [],
-          todayTask: null,
-          lastResetMonth: currentMonth(),
-        }));
-      },
-
-      checkMonthlyReset: () => {
-        if (get().lastResetMonth !== currentMonth()) {
-          get().monthlyReset();
+          return { playlists: [pl], activePlaylistId: pl.id };
         }
+        return persisted;
       },
-    }),
-    { name: 'bastet-box-v1' }
+    }
   )
 );

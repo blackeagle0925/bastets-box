@@ -16,9 +16,10 @@ function formatDate(iso: string): string {
 }
 
 export default function HistoryPage() {
-  const { completionHistory } = useTaskStore();
+  const { playlists, activePlaylistId } = useTaskStore();
+  const activePlaylist = playlists.find((p) => p.id === activePlaylistId);
+  const completionHistory = activePlaylist?.completionHistory ?? [];
 
-  // 月ごとにグループ化（新しい順）
   const byMonth: Record<string, CompletionRecord[]> = {};
   for (const record of completionHistory) {
     const month = record.completedAt.slice(0, 7);
@@ -34,7 +35,7 @@ export default function HistoryPage() {
         <div>
           <h1 className="text-gold font-display tracking-widest text-xl">達成の記録</h1>
           <p className="text-sand/50 text-xs mt-1">
-            通算 {completionHistory.length} 件の課題を達成
+            {activePlaylist ? `${activePlaylist.title} — ` : ''}通算 {completionHistory.length} 件の課題を達成
           </p>
         </div>
         <Link

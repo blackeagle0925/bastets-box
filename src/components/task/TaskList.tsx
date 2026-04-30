@@ -11,14 +11,14 @@ import EgyptianBorder from '@/components/ui/EgyptianBorder';
 export default function TaskList() {
   const [showForm, setShowForm] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-  const { tasks } = useTaskStore();
+  const { playlists, activePlaylistId } = useTaskStore();
+  const tasks = playlists.find((p) => p.id === activePlaylistId)?.tasks ?? [];
 
   const activeTasks = tasks.filter((t) => t.status === 'active');
   const completedTasks = tasks.filter((t) => t.status === 'completed');
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 新規登録フォーム */}
       <AnimatePresence>
         {showForm && (
           <motion.div
@@ -39,7 +39,6 @@ export default function TaskList() {
         </GoldButton>
       )}
 
-      {/* アクティブ課題 */}
       <div>
         <p className="text-gold/60 text-xs tracking-widest mb-3">
           授かりし課題 — {activeTasks.length}件
@@ -59,7 +58,6 @@ export default function TaskList() {
         )}
       </div>
 
-      {/* 完了済み課題 */}
       {completedTasks.length > 0 && (
         <div>
           <button

@@ -23,8 +23,13 @@ export default function HomePage() {
   const [speech, setSpeech] = useState('');
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { tasks, todayTask, drawnIds, drawTask, completeTask, resetTodayTask, checkMonthlyReset } =
+  const { playlists, activePlaylistId, drawTask, completeTask, resetTodayTask, checkMonthlyReset } =
     useTaskStore();
+
+  const activePlaylist = playlists.find((p) => p.id === activePlaylistId);
+  const tasks = activePlaylist?.tasks ?? [];
+  const todayTask = activePlaylist?.todayTask ?? null;
+  const drawnIds = activePlaylist?.drawnIds ?? [];
 
   const activeTasks = tasks.filter((t) => t.status === 'active');
   const activeCount = activeTasks.length;
@@ -91,13 +96,15 @@ export default function HomePage() {
   const idolPhase =
     phase === 'blessing' ? 'blessing' : phase === 'drawing' ? 'drawing' : 'idle';
 
-  const drawDisabled = activeCount === 0 || allDrawn;
+  const drawDisabled = !activePlaylist || activeCount === 0 || allDrawn;
   const drawLabel =
-    activeCount === 0
-      ? '課題を登録してください'
-      : allDrawn
-        ? 'すべての課題を引き尽くした'
-        : `${availableCount}件の課題が待っている`;
+    !activePlaylist
+      ? 'プレイリストを作成してください'
+      : activeCount === 0
+        ? '課題を登録してください'
+        : allDrawn
+          ? 'すべての課題を引き尽くした'
+          : `${availableCount}件の課題が待っている`;
 
   return (
     <main className="min-h-dvh flex flex-col items-center px-4 pt-10 pb-8 relative overflow-hidden">
@@ -120,7 +127,12 @@ export default function HomePage() {
 
       {/* ヘッダー */}
       <div className="w-full max-w-sm flex justify-between items-center mb-2 z-10">
-        <h1 className="text-gold text-lg font-display tracking-widest">Bastet&apos;s Box</h1>
+        <div>
+          <h1 className="text-gold text-lg font-display tracking-widest">Bastet&apos;s Box</h1>
+          {activePlaylist && (
+            <p className="text-sand/30 text-xs mt-0.5 tracking-wider">{activePlaylist.title}</p>
+          )}
+        </div>
         <Link
           href="/tasks"
           className="text-sand/60 hover:text-sand text-sm border border-sand/20 hover:border-sand/40 rounded-lg px-3 py-1.5 transition-colors"
